@@ -5,15 +5,11 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-//import java.io.DataInputStream;
-//import java.io.DataOutputStream;
-//import java.io.IOException;
-//import java.net.Socket;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.nio.NioEventLoopGroup;
 
 public class ClientController {
-
+    Bootstrap bootstrap = new Bootstrap();
 
     @FXML
     Button logBtn;
@@ -40,28 +36,33 @@ public class ClientController {
     @FXML
     Button uplBtn;
     @FXML
-    public void initialize() throws InterruptedException {
+    public void initialize() {
         setAuthorized(false);
-        EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-        try {
-            Bootstrap bootstrap = new Bootstrap();
-            bootstrap.group(eventLoopGroup);
-            bootstrap.channel(NioSocketChannel.class);
-            bootstrap.handler(new ChannelInitializer<>() {
-                @Override
-                protected void initChannel(Channel channel) throws Exception {
-                    ChannelPipeline pipeline = channel.pipeline();
-                    pipeline.addLast(new ClientHandler());
-                }
-            });
-            ChannelFuture channelFuture = bootstrap.connect("localhost", 45001).sync();
-            channelFuture.channel().closeFuture().sync();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        eventLoopGroup.shutdownGracefully();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
 
+                EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+                bootstrap.group(eventLoopGroup);
+                bootstrap.channel(NioSocketChannel.class);
+                System.out.println("Контрольная точка");
+                bootstrap.handler(new ChannelInitializer<>() {
+                    @Override
+                    public void initChannel(Channel channel) throws Exception {
+                        ChannelPipeline pipeline = channel.pipeline();
+                        pipeline.addLast(new ClientHandler());
+                        ChannelFuture channelFuture = bootstrap.connect("localhost", 45001).sync();
+                        channelFuture.channel().closeFuture().sync();
+                        Thread.currentThread().interrupt();
+                                            }
+                });
+                eventLoopGroup.shutdownGracefully();
+            }
+        });
+        System.out.println("Поток 2 запускается");
+        t.start();
     }
+
 
 
     public void setAuthorized(boolean b) {
@@ -95,7 +96,7 @@ public class ClientController {
     }
 
     public void btnLogin(ActionEvent actionEvent) {
-        String loginMsg = new String("/auth " + log.getText() + " " + pass.getText());
-        System.out.println(loginMsg);
+            String loginMsg = new String("/auth " + log.getText() + " " + pass.getText());
+            System.out.println(loginMsg);
     }
 }
